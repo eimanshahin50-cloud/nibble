@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>nibble. – prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #123D22;
+    --ink: #111111;
+    --cream: #FFF8EC;
+    --butter: #F6E27A;
+    --pink: #F9C6E8;
+    --peach: #FFB98A;
+    --lilac: #D9CCFF;
+    --mint: #CDEBC0;
+    --warn: #FFE2C2;
+    --line: 1.5px solid var(--ink);
+    --ease: cubic-bezier(.22, .8, .24, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    color: var(--ink);
+    background: #EDE6D8;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  button:disabled { cursor: not-allowed; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+
+  /* ---------- Phone frame ---------- */
+  .phone {
+    position: relative;
+    width: 393px; height: min(852px, 100vh);
+    overflow: hidden; overflow: clip;
+    border: var(--line); border-radius: 22px;
+    background: var(--cream);
+  }
+  @media (max-width: 440px) {
+    body { display: block; }
+    .phone { width: 100%; height: 100vh; height: 100dvh; border: 0; border-radius: 0; }
+  }
+
+  /* ---------- Screens & transitions ---------- */
+  .screen {
+    position: absolute; inset: 0;
+    overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(100%); opacity: 0; visibility: hidden;
+    transition: transform .42s var(--ease), opacity .42s var(--ease), visibility 0s linear .42s;
+  }
+  .screen.active { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
+  .screen.left { transform: translateX(-28%); opacity: 0; }
+  .screen.up { transform: translateY(6%); }
+  #search { background: var(--cream); }
+  #detail { background: var(--butter); }
+  #review { background: var(--lilac); }
+  .pad { padding: 16px 20px 32px; }
+
+  /* ---------- Type ---------- */
+  .headline {
+    font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+    text-transform: uppercase; color: var(--green);
+    line-height: .95; letter-spacing: -.01em;
+  }
+  .logo { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 30px; color: var(--green); letter-spacing: -.03em; }
+  .section-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 26px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label .count { border: var(--line); border-radius: 999px; padding: 1px 8px; font-size: 11px; background: #fff; }
+
+  /* ---------- Shared bits ---------- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+  .icon-btn {
+    width: 44px; height: 44px; border: var(--line); border-radius: 14px;
+    background: var(--cream); display: grid; place-items: center; font-size: 20px; font-weight: 700;
+  }
+  .toggle {
+    min-height: 44px; padding: 0 14px; border: var(--line); border-radius: 999px;
+    background: var(--lilac); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .toggle .dot { width: 8px; height: 8px; border-radius: 50%; border: var(--line); background: var(--cream); }
+  .chip {
+    min-height: 44px; padding: 0 16px; border: var(--line); border-radius: 999px;
+    background: var(--cream); font-size: 14px; font-weight: 600; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background .2s, transform .12s;
+  }
+  .chip:active { transform: scale(.96); }
+  .chip[aria-pressed="true"] { background: var(--green); color: var(--cream); }
+  .chip[aria-pressed="true"]::before { content: "✓"; font-weight: 700; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 700; padding: 4px 10px;
+    border: var(--line); border-radius: 999px; white-space: nowrap;
+  }
+  .tag.ok { background: var(--mint); }
+  .tag.ask { background: var(--warn); }
+  .tag.no { background: var(--warn); }
+  .btn-primary {
+    width: 100%; min-height: 56px; border: var(--line); border-radius: 18px;
+    background: var(--green); color: var(--cream); font-size: 16px; font-weight: 700;
+    transition: background .2s, color .2s, transform .12s;
+  }
+  .btn-primary:active:not(:disabled) { transform: scale(.98); }
+  .btn-primary:disabled { background: transparent; color: rgba(17,17,17,.55); border-style: dashed; }
+  .img {
+    border: var(--line); overflow: hidden; background: var(--peach);
+    display: grid; place-items: center; position: relative;
+  }
+  .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .img .fallback { font-size: 34px; }
+
+  /* ---------- Search screen ---------- */
+  .banner {
+    margin-top: 14px; background: var(--butter); border: var(--line); border-radius: 22px;
+    padding: 20px; display: flex; align-items: center; gap: 10px; min-height: 140px; overflow: hidden;
+  }
+  .banner h1 { font-size: 34px; flex: 1; }
+  .mascot { width: 108px; height: 108px; flex: none; display: grid; place-items: center; }
+  .mascot img { width: 100%; height: 100%; object-fit: contain; }
+  .mascot .fallback { font-size: 64px; }
+  .searchbox {
+    margin-top: 14px; display: flex; align-items: center; gap: 10px;
+    border: var(--line); border-radius: 18px; background: #fff; padding: 0 8px 0 16px; min-height: 56px;
+  }
+  .searchbox input { flex: 1; border: 0; background: none; font: inherit; font-size: 15px; min-height: 44px; outline: none; color: var(--ink); }
+  .searchbox .go { width: 44px; height: 44px; border-radius: 14px; border: var(--line); background: var(--green); color: var(--cream); font-size: 18px; }
+  .chips { display: flex; gap: 8px; margin: 14px -20px 0; padding: 0 20px 2px; overflow-x: auto; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+
+  .card {
+    display: flex; gap: 12px; width: 100%; text-align: left;
+    border: var(--line); border-radius: 20px; background: #fff; padding: 10px; margin-bottom: 10px;
+    transition: transform .12s, background .2s;
+    animation: cardIn .38s var(--ease) both;
+  }
+  .card:active { transform: scale(.98); background: var(--cream); }
+  .card .img { width: 96px; height: 96px; border-radius: 14px; flex: none; }
+  .card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 2px 0; }
+  .card-body h3 { font-size: 16px; font-weight: 700; line-height: 1.2; }
+  .card-body .rest { font-size: 13px; color: #444; }
+  .card-body .meta { font-size: 13px; font-weight: 600; }
+  .card-body .tag { align-self: flex-start; margin-top: auto; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .empty { border: var(--line); border-style: dashed; border-radius: 20px; padding: 18px; font-size: 14px; text-align: center; }
+  .footnote { font-size: 12px; color: #555; margin-top: 18px; line-height: 1.45; }
+
+  /* ---------- Detail screen ---------- */
+  #detail .pad { padding-bottom: 110px; }
+  .hero { margin-top: 10px; height: 250px; border-radius: 22px; }
+  .hero .fallback { font-size: 80px; }
+  #detail h1 { font-size: 40px; margin-top: 18px; }
+  .d-rest { font-size: 15px; font-weight: 600; margin-top: 8px; }
+  .d-status { margin-top: 12px; font-size: 14px; line-height: 1.4; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .questions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .questions .chip { white-space: normal; text-align: left; padding: 10px 16px; line-height: 1.3; border-radius: 18px; }
+  .questions .chip:disabled { opacity: .45; }
+  .chat { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .bubble-q {
+    align-self: flex-end; max-width: 82%; background: var(--pink); border: var(--line);
+    border-radius: 20px 20px 6px 20px; padding: 12px 16px; font-size: 15px; font-weight: 600;
+    animation: pop .3s var(--ease) both;
+  }
+  .typing {
+    align-self: flex-start; background: var(--cream); border: var(--line); border-radius: 20px 20px 20px 6px;
+    padding: 14px 16px; display: flex; gap: 5px; animation: pop .3s var(--ease) both;
+  }
+  .typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); animation: blink 1s infinite; }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .2; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+  .answer {
+    background: var(--cream); border: var(--line); border-radius: 22px; padding: 16px;
+    font-size: 14px; line-height: 1.5; animation: pop .35s var(--ease) both;
+  }
+  .answer .who { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .answer .who i { font-style: normal; width: 22px; height: 22px; border: var(--line); border-radius: 50%; background: var(--lilac); display: grid; place-items: center; font-size: 11px; }
+  .answer h4 { font-size: 13px; font-weight: 700; margin: 12px 0 6px; }
+  .answer ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .answer li { display: flex; gap: 8px; }
+  .answer li b { flex: none; }
+  .kitchen { margin-top: 12px; background: var(--warn); border: var(--line); border-radius: 14px; padding: 12px 14px; }
+  .kitchen strong { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .only { margin-top: 12px; padding-top: 12px; border-top: var(--line); font-weight: 700; color: var(--green); }
+  .dock {
+    position: sticky; bottom: 0; margin: 0 -20px -110px; padding: 14px 20px 20px;
+    background: var(--butter); border-top: var(--line);
+  }
+
+  /* ---------- Sheet ---------- */
+  .scrim {
+    position: absolute; inset: 0; background: rgba(17,17,17,.35); z-index: 20;
+    opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s linear .3s;
+  }
+  .scrim.open { opacity: 1; visibility: visible; transition-delay: 0s; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 21;
+    background: var(--cream); border-top: var(--line); border-radius: 22px 22px 0 0;
+    padding: 10px 20px 24px; transform: translateY(105%); transition: transform .4s var(--ease);
+  }
+  .sheet.open { transform: none; }
+  .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--ink); margin: 0 auto 14px; opacity: .8; }
+  .sheet h2 { font-size: 24px; }
+  .sheet .to { font-size: 14px; margin: 6px 0 12px; }
+  .sheet textarea {
+    width: 100%; min-height: 140px; border: var(--line); border-radius: 16px; padding: 14px;
+    font: inherit; font-size: 15px; line-height: 1.45; background: #fff; resize: none; color: var(--ink);
+  }
+  .sheet .row { display: flex; gap: 10px; margin-top: 12px; }
+  .btn-ghost { min-height: 56px; padding: 0 20px; border: var(--line); border-radius: 18px; background: #fff; font-weight: 700; }
+
+  .toast {
+    position: absolute; left: 20px; right: 20px; bottom: 24px; z-index: 30;
+    background: var(--mint); border: var(--line); border-radius: 18px; padding: 14px 16px;
+    font-size: 14px; font-weight: 600; transform: translateY(200%); visibility: hidden; transition: transform .4s var(--ease), visibility 0s linear .4s;
+  }
+  .toast.show { transform: none; visibility: visible; transition-delay: 0s; }
+
+  /* ---------- Review screen ---------- */
+  #review h1 { font-size: 44px; margin-top: 18px; }
+  #review .intro { font-size: 15px; margin-top: 10px; line-height: 1.45; }
+  .rcard { margin-top: 18px; display: flex; gap: 12px; align-items: center; border: var(--line); border-radius: 20px; background: var(--cream); padding: 10px; }
+  .rcard .img { width: 84px; height: 84px; border-radius: 14px; flex: none; background: var(--mint); }
+  .rcard h3 { font-size: 17px; }
+  .rcard p { font-size: 13px; margin-top: 3px; color: #333; }
+  .allergen { border: var(--line); border-radius: 20px; background: #fff; padding: 14px; margin-bottom: 10px; transition: background .25s; }
+  .allergen.contains { background: var(--mint); }
+  .allergen.notin { background: var(--cream); }
+  .allergen .ahead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .allergen h3 { font-size: 18px; font-weight: 700; }
+  .ai-pill { font-size: 11px; font-weight: 700; border: var(--line); border-radius: 999px; padding: 2px 8px; background: var(--lilac); white-space: nowrap; }
+  .allergen .reason { font-size: 14px; line-height: 1.4; margin-top: 6px; color: #333; }
+  .allergen .acts { display: flex; gap: 8px; margin-top: 12px; }
+  .opt {
+    flex: 1; min-height: 48px; border: var(--line); border-radius: 14px; background: var(--cream);
+    font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: background .2s, color .2s;
+  }
+  .opt .box { width: 20px; height: 20px; border: var(--line); border-radius: 6px; background: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+  .opt[aria-pressed="true"].yes { background: var(--green); color: var(--cream); }
+  .opt[aria-pressed="true"].yes .box { background: var(--mint); color: var(--ink); }
+  .opt[aria-pressed="true"].nope { background: var(--ink); color: var(--cream); }
+  .progress { height: 10px; border: var(--line); border-radius: 999px; background: var(--cream); overflow: hidden; margin: 18px 0 12px; }
+  .progress span { display: block; height: 100%; background: var(--green); width: 0; transition: width .35s var(--ease); }
+  .done { margin-top: 14px; border: var(--line); border-radius: 18px; background: var(--mint); padding: 14px 16px; font-size: 14px; line-height: 1.45; animation: pop .35s var(--ease) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<script>
+  // Shows an emoji placeholder if an image in /images is missing
+  function fallback(img, emoji) {
+    const span = document.createElement("span");
+    span.className = "fallback";
+    span.textContent = emoji || img.parentElement.dataset.fallback || "🍽";
+    img.replaceWith(span);
+  }
+</script>
+<main class="phone" id="phone">
+
+  <!-- ================= 1. SEARCH RESULTS ================= -->
+  <section class="screen active" id="search" aria-label="Search results">
+    <div class="pad">
+      <div class="topbar">
+        <span class="logo">nibble.</span>
+        <button class="toggle" data-go="review" aria-label="Switch to restaurant view"><span class="dot"></span>Restaurant view</button>
+      </div>
+
+      <div class="banner">
+        <h1 class="headline">What can I eat tonight?</h1>
+        <div class="mascot" data-fallback="🥟"><img src="images/mascot.png" alt="nibble mascot" onerror="fallback(this)"></div>
+      </div>
+
+      <form class="searchbox" onsubmit="event.preventDefault()" role="search">
+        <span aria-hidden="true">⌕</span>
+        <input type="search" aria-label="Search dishes" value="Gluten-free dinner for two, under £30">
+        <button class="go" type="submit" aria-label="Search">→</button>
+      </form>
+
+      <div class="chips" role="group" aria-label="Filters">
+        <button class="chip" data-filter="noGluten" aria-pressed="true">No gluten</button>
+        <button class="chip" data-filter="forTwo" aria-pressed="false">For 2</button>
+        <button class="chip" data-filter="under30" aria-pressed="false">Under £30</button>
+        <button class="chip" data-filter="nearMe" aria-pressed="false">Near me</button>
+      </div>
+
+      <div id="results"></div>
+
+      <p class="footnote">nibble. only shows allergen info the restaurant has confirmed. Dishes not confirmed yet are shown separately so you can ask before you order.</p>
+    </div>
+  </section>
+
+  <!-- ================= 2. DISH DETAIL ================= -->
+  <section class="screen" id="detail" aria-label="Dish detail">
+    <div class="pad">
+      <div class="topbar">
+        <button class="icon-btn" data-back aria-label="Back to results">←</button>
+        <span class="logo" style="font-size:22px">nibble.</span>
+        <span style="width:44px"></span>
+      </div>
+      <div class="img hero" id="d-img"></div>
+      <h1 class="headline" id="d-name"></h1>
+      <p class="d-rest" id="d-rest"></p>
+      <div class="d-status" id="d-status"></div>
+
+      <p class="section-label">Ask nibble. about this dish</p>
+      <div class="questions" id="d-questions"></div>
+      <div class="chat" id="d-chat" aria-live="polite"></div>
+
+      <div class="dock">
+        <button class="btn-primary" id="ask-btn">Ask the restaurant</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3. RESTAURANT REVIEW ================= -->
+  <section class="screen" id="review" aria-label="Restaurant allergen review">
+    <div class="pad">
+      <div class="topbar">
+        <span class="logo" style="font-size:22px">nibble. <span style="font-family:'Instrument Sans';font-size:13px;font-weight:600;color:var(--ink)">for restaurants</span></span>
+        <button class="toggle" data-back aria-label="Switch to customer view" style="background:var(--cream)"><span class="dot" style="background:var(--green)"></span>Customer view</button>
+      </div>
+
+      <h1 class="headline">Check the allergens</h1>
+      <p class="intro">We read your menu and suggested these. Only you know what's in your kitchen, so please check each one.</p>
+
+      <div class="rcard">
+        <div class="img" data-fallback="🍝"><img src="images/pesto-pasta.jpg" alt="Pesto pasta" onerror="fallback(this)"></div>
+        <div>
+          <h3>Pesto pasta</h3>
+          <p>Basil Street · £10.50</p>
+          <p>“Fresh trofie, basil &amp; cashew pesto, parmesan.”</p>
+        </div>
+      </div>
+
+      <p class="section-label">Suggested by AI <span class="count" id="r-count">0 of 3</span></p>
+      <div id="allergens"></div>
+
+      <div class="progress" aria-hidden="true"><span id="r-bar"></span></div>
+      <button class="btn-primary" id="confirm-btn" disabled>0 of 3 checked</button>
+      <div id="r-done"></div>
+    </div>
+  </section>
+
+  <!-- ================= Ask-the-restaurant sheet ================= -->
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grab"></div>
+    <h2 class="headline" id="sheet-title">Ask the restaurant</h2>
+    <p class="to" id="sheet-to"></p>
+    <textarea id="sheet-msg" aria-label="Message to the restaurant"></textarea>
+    <div class="row">
+      <button class="btn-ghost" id="sheet-cancel">Cancel</button>
+      <button class="btn-primary" id="sheet-send">Send message</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</main>
+
+<script>
+/* =========================================================
+   DATA – all made up for the prototype.
+   status: "confirmed"   → restaurant has confirmed the allergens
+           "unconfirmed" → nobody has confirmed yet (never called safe)
+   "contains" lists allergens the restaurant confirmed are IN the dish.
+   ========================================================= */
+const RESTAURANTS = {
+  olive:  { name: "Olive & Ash",          km: 0.8, reply: "about 15 min" },
+  basil:  { name: "Basil Street",         km: 1.4, reply: "about 30 min" },
+  tokyo:  { name: "Little Tokyo Kitchen", km: 1.9, reply: "about 20 min" },
+  green:  { name: "The Green Bowl",       km: 3.6, reply: "within the hour" }
+};
+
+const DISHES = [
+  { id: "chicken", name: "Roast chicken & herb potatoes", rest: "olive", price: 13.50, mins: 25,
+    img: "images/roast-chicken.jpg", emoji: "🍗", colour: "var(--peach)",
+    status: "confirmed", days: 12, gluten: false, contains: ["milk"],
+    kitchen: "Our potatoes are roasted in butter. We use a separate fryer, but nuts are handled in the dessert section of the same kitchen." },
+  { id: "poke", name: "Salmon poke bowl", rest: "tokyo", price: 12.00, mins: 20,
+    img: "images/poke-bowl.jpg", emoji: "🍣", colour: "var(--pink)",
+    status: "confirmed", days: 5, gluten: false, contains: ["fish", "soy", "sesame"],
+    kitchen: "We use tamari instead of soy sauce. Sesame seeds are sprinkled at the pass and can be left off on request." },
+  { id: "kofta", name: "Lamb kofta with saffron rice", rest: "olive", price: 16.50, mins: 30,
+    img: "images/lamb-kofta.jpg", emoji: "🍢", colour: "var(--butter)",
+    status: "confirmed", days: 20, gluten: false, contains: ["sesame", "milk"],
+    kitchen: "The yoghurt dip contains milk. Flatbread is cooked on the same grill — ask us to leave it off." },
+  { id: "risotto", name: "Wild mushroom risotto", rest: "basil", price: 11.50, mins: 35,
+    img: "images/mushroom-risotto.jpg", emoji: "🍄", colour: "var(--lilac)",
+    status: "unconfirmed", gluten: null, contains: [], kitchen: null },
+  { id: "curry", name: "Thai green curry with jasmine rice", rest: "green", price: 12.50, mins: 40,
+    img: "images/green-curry.jpg", emoji: "🍛", colour: "var(--mint)",
+    status: "unconfirmed", gluten: null, contains: [], kitchen: null },
+  { id: "pizza", name: "Margherita pizza", rest: "basil", price: 10.00, mins: 25,
+    img: "images/margherita.jpg", emoji: "🍕", colour: "var(--peach)",
+    status: "confirmed", days: 3, gluten: true, contains: ["gluten", "milk"],
+    kitchen: "Our dough is made with wheat flour. We don't have a gluten-free base yet." }
+];
+
+const QUESTIONS = [
+  { id: "peanut", text: "Is this safe for my son's peanut allergy?", allergen: "peanuts" },
+  { id: "gluten", text: "Is it cooked near anything with gluten?",   allergen: "gluten" },
+  { id: "milk",   text: "Can it be made without milk?",              allergen: "milk" }
+];
+
+/* ---------- State ---------- */
+const filters = { noGluten: true, forTwo: false, under30: false, nearMe: false };
+let current = null;          // dish on the detail screen
+let lastQuestion = null;
+const history = ["search"];
+
+/* ---------- Helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const money = n => "£" + n.toFixed(2).replace(".00", "");
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const list = arr => arr.length < 2 ? arr.join("") : arr.slice(0, -1).join(", ") + " and " + arr.at(-1);
+
+function imgHTML(src, alt, emoji) {
+  return `<img src="${src}" alt="${alt}" onerror="fallback(this,'${emoji}')">`;
+}
+function tagFor(d) {
+  if (d.status === "unconfirmed") return `<span class="tag ask">? Ask the restaurant</span>`;
+  if (d.gluten) return `<span class="tag no">✕ Contains gluten</span>`;
+  return `<span class="tag ok">✓ Confirmed ${d.days} days ago</span>`;
+}
+
+/* ---------- Navigation with transitions ---------- */
+function go(id) {
+  const from = document.getElementById(history.at(-1));
+  const to = document.getElementById(id);
+  if (from === to) return;
+  to.scrollTop = 0;
+  to.classList.remove("left");
+  // force the "from right" start position before animating
+  to.style.transition = "none"; to.style.transform = "translateX(100%)"; void to.offsetWidth;
+  to.style.transition = ""; to.style.transform = "";
+  from.classList.remove("active"); from.classList.add("left");
+  to.classList.add("active");
+  history.push(id);
+}
+function back() {
+  if (history.length < 2) return;
+  const from = document.getElementById(history.pop());
+  const to = document.getElementById(history.at(-1));
+  from.classList.remove("active");            // slides back out to the right
+  to.classList.remove("left"); to.classList.add("active");
+}
+document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+document.querySelectorAll("[data-back]").forEach(b => b.onclick = back);
+
+/* =========================================================
+   SCREEN 1 – Search results
+   ========================================================= */
+function passes(d) {
+  const r = RESTAURANTS[d.rest];
+  const total = filters.forTwo ? d.price * 2 : d.price;
+  if (filters.noGluten && d.gluten === true) return false;   // confirmed to contain gluten
+  if (filters.under30 && total > 30) return false;
+  if (filters.nearMe && r.km > 2) return false;
+  return true;
+}
+
+function cardHTML(d, i) {
+  const r = RESTAURANTS[d.rest];
+  const price = filters.forTwo ? `${money(d.price * 2)} for 2` : money(d.price);
+  return `<button class="card" data-dish="${d.id}" style="animation-delay:${i * 40}ms" aria-label="${d.name} from ${r.name}">
+    <div class="img" style="background:${d.colour}">${imgHTML(d.img, "", d.emoji)}</div>
+    <div class="card-body">
+      <h3>${d.name}</h3>
+      <span class="rest">${r.name} · ${r.km} km</span>
+      <span class="meta">${price} · ${d.mins} min</span>
+      ${tagFor(d)}
+    </div>
+  </button>`;
+}
+
+function renderResults() {
+  const shown = DISHES.filter(passes);
+  const confirmed = shown.filter(d => d.status === "confirmed");
+  const pending = shown.filter(d => d.status === "unconfirmed");
+  let i = 0;
+  const group = (title, items, emptyMsg) => `
+    <p class="section-label">${title} <span class="count">${items.length}</span></p>
+    ${items.length ? items.map(d => cardHTML(d, i++)).join("") : `<div class="empty">${emptyMsg}</div>`}`;
+  $("#results").innerHTML =
+    group("Confirmed by the restaurant", confirmed, "No confirmed dishes match these filters. Try removing one.") +
+    group("Not confirmed yet", pending, "Nothing waiting for confirmation here.");
+  document.querySelectorAll(".card").forEach(c => c.onclick = () => openDish(c.dataset.dish));
+}
+
+document.querySelectorAll("[data-filter]").forEach(chip => {
+  chip.onclick = () => {
+    const k = chip.dataset.filter;
+    filters[k] = !filters[k];
+    chip.setAttribute("aria-pressed", filters[k]);
+    renderResults();
+  };
+});
+
+/* =========================================================
+   SCREEN 2 – Dish detail
+   ========================================================= */
+function openDish(id) {
+  current = DISHES.find(d => d.id === id);
+  lastQuestion = null;
+  const d = current, r = RESTAURANTS[d.rest];
+  $("#d-img").style.background = d.colour;
+  $("#d-img").innerHTML = imgHTML(d.img, d.name, d.emoji);
+  $("#d-name").textContent = d.name;
+  $("#d-rest").textContent = `${r.name} · ${money(d.price)} · ${d.mins} min`;
+
+  if (d.status === "confirmed") {
+    $("#d-status").innerHTML = `<span class="tag ${d.gluten ? "no" : "ok"}">${d.gluten ? "✕" : "✓"} Confirmed</span>
+      <span>Contains ${list(d.contains)} · Confirmed by the restaurant ${d.days} days ago</span>`;
+  } else {
+    $("#d-status").innerHTML = `<span class="tag ask">? Not confirmed yet</span>
+      <span>The restaurant hasn't confirmed allergens for this dish.</span>`;
+  }
+
+  $("#d-questions").innerHTML = QUESTIONS.map(q =>
+    `<button class="chip" data-q="${q.id}">${q.text}</button>`).join("");
+  $("#d-chat").innerHTML = "";
+  document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => ask(b));
+  go("detail");
+}
+
+/* ---------------------------------------------------------
+   SCRIPTED AI ANSWERS
+   These answers are NOT generated by a real model. They are
+   scripted templates built only from the dish data above, to
+   show how nibble. would answer: state what the restaurant has
+   confirmed, quote the kitchen note, and always make clear
+   that only the restaurant can say how the dish is prepared.
+   --------------------------------------------------------- */
+function scriptedAnswer(d, q) {
+  const r = RESTAURANTS[d.rest];
+  let confirmed;
+  if (d.status !== "confirmed") {
+    confirmed = `<ul><li><b>?</b><span>${r.name} hasn't confirmed the allergens in this dish yet, so I can't tell you whether it contains ${q.allergen}.</span></li></ul>`;
+  } else {
+    const inIt = d.contains.includes(q.allergen);
+    const items = [`<li><b>•</b><span>Contains: ${list(d.contains.map(cap))}.</span></li>`];
+    items.push(inIt
+      ? `<li><b>!</b><span>${cap(q.allergen)} <strong>is</strong> on the restaurant's confirmed list for this dish.</span></li>`
+      : `<li><b>•</b><span>${cap(q.allergen)} ${q.allergen.endsWith("s") ? "aren't" : "isn't"} on the restaurant's confirmed allergen list. That isn't the same as a guarantee.</span></li>`);
+    items.push(`<li><b>•</b><span>Confirmed by ${r.name} ${d.days} days ago.</span></li>`);
+    confirmed = `<ul>${items.join("")}</ul>`;
+  }
+  const kitchen = d.kitchen
+    ? `<div class="kitchen"><strong>Kitchen note from ${r.name}</strong>“${d.kitchen}”</div>`
+    : `<div class="kitchen"><strong>Kitchen note</strong>No note from the kitchen yet.</div>`;
+  return `<div class="answer">
+    <div class="who"><i>n.</i> nibble. assistant</div>
+    <h4 style="margin-top:0">What the restaurant has confirmed</h4>
+    ${confirmed}
+    ${kitchen}
+    <p class="only">Only ${r.name} can say how it's prepared and whether cross-contact is possible. Please ask them before you order.</p>
+  </div>`;
+}
+
+function ask(btn) {
+  const q = QUESTIONS.find(x => x.id === btn.dataset.q);
+  const d = current;
+  lastQuestion = q;
+  document.querySelectorAll("[data-q]").forEach(b => b.disabled = true);
+  const chat = $("#d-chat");
+  chat.insertAdjacentHTML("beforeend", `<div class="bubble-q">${q.text}</div>`);
+  const typing = document.createElement("div");
+  typing.className = "typing"; typing.setAttribute("aria-label", "nibble. is typing");
+  typing.innerHTML = "<span></span><span></span><span></span>";
+  chat.appendChild(typing);
+  scrollToEnd();
+  setTimeout(() => {
+    if (current !== d) return;             // user left the screen
+    typing.remove();
+    chat.insertAdjacentHTML("beforeend", scriptedAnswer(d, q));
+    btn.remove();
+    document.querySelectorAll("[data-q]").forEach(b => b.disabled = false);
+    scrollToEnd();
+  }, 1300);
+}
+function scrollToEnd() {
+  const s = $("#detail");
+  requestAnimationFrame(() => s.scrollTo({ top: s.scrollHeight, behavior: "smooth" }));
+}
+
+/* ---------- Ask-the-restaurant sheet ---------- */
+function openSheet() {
+  const d = current, r = RESTAURANTS[d.rest];
+  const topic = lastQuestion?.id === "peanut" ? "my son has a peanut allergy"
+              : lastQuestion?.id === "milk"   ? "I'm avoiding milk"
+              : "I have coeliac disease and need to avoid gluten";
+  $("#sheet-to").innerHTML = `To <strong>${r.name}</strong> · usually replies ${r.reply}`;
+  $("#sheet-msg").value = `Hi ${r.name}, ${topic}. Could you tell me how the ${d.name.toLowerCase()} is prepared, and whether it's cooked near any ${lastQuestion ? lastQuestion.allergen : "gluten"}? Thank you!`;
+  $("#scrim").classList.add("open"); $("#sheet").classList.add("open");
+  setTimeout(() => $("#sheet-msg").focus({ preventScroll: true }), 400);
+}
+function closeSheet() { $("#scrim").classList.remove("open"); $("#sheet").classList.remove("open"); }
+$("#ask-btn").onclick = openSheet;
+$("#scrim").onclick = closeSheet;
+$("#sheet-cancel").onclick = closeSheet;
+$("#sheet-send").onclick = () => {
+  closeSheet();
+  toast(`Sent to ${RESTAURANTS[current.rest].name}. We'll let you know when they reply.`);
+};
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+/* =========================================================
+   SCREEN 3 – Restaurant review
+   ========================================================= */
+const SUGGESTED = [
+  { id: "milk",   name: "Milk",            reason: "Parmesan is listed in the description, and pesto is usually made with cheese." },
+  { id: "gluten", name: "Gluten",          reason: "Trofie pasta is normally made from durum wheat." },
+  { id: "nuts",   name: "Nuts (cashews)",  reason: "The menu says “cashew pesto”. Cashews are a tree nut." }
+];
+const decisions = {};   // id → "contains" | "notin"
+
+function renderAllergens() {
+  $("#allergens").innerHTML = SUGGESTED.map(a => {
+    const v = decisions[a.id];
+    return `<div class="allergen ${v || ""}">
+      <div class="ahead"><h3>${a.name}</h3><span class="ai-pill">AI suggestion</span></div>
+      <p class="reason">${a.reason}</p>
+      <div class="acts">
+        <button class="opt yes" data-a="${a.id}" data-v="contains" aria-pressed="${v === "contains"}">
+          <span class="box">${v === "contains" ? "✓" : ""}</span>It's in it</button>
+        <button class="opt nope" data-a="${a.id}" data-v="notin" aria-pressed="${v === "notin"}">Not in it</button>
+      </div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    decisions[b.dataset.a] = decisions[b.dataset.a] === b.dataset.v ? undefined : b.dataset.v;
+    if (!decisions[b.dataset.a]) delete decisions[b.dataset.a];
+    $("#r-done").innerHTML = "";
+    renderAllergens();
+  });
+  const n = Object.keys(decisions).length;
+  $("#r-count").textContent = `${n} of 3`;
+  $("#r-bar").style.width = (n / 3 * 100) + "%";
+  const btn = $("#confirm-btn");
+  btn.disabled = n < 3;
+  btn.textContent = n < 3 ? `${n} of 3 checked` : "Confirm allergens";
+}
+$("#confirm-btn").onclick = () => {
+  const yes = SUGGESTED.filter(a => decisions[a.id] === "contains").map(a => a.name);
+  $("#r-done").innerHTML = `<div class="done"><strong>Thanks — Pesto pasta is now confirmed.</strong><br>
+    Customers will see: ${yes.length ? "Contains " + list(yes) : "None of the suggested allergens"} · Confirmed by the restaurant today.</div>`;
+  $("#confirm-btn").textContent = "Confirmed ✓";
+  $("#confirm-btn").disabled = true;
+};
+
+/* ---------- Init ---------- */
+renderResults();
+renderAllergens();
+</script>
+</body>
+</html>
