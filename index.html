@@ -155,6 +155,35 @@
   .understood b { font-weight: 700; }
   .tries { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: 12px; color: #555; align-items: center; }
   .tries button { font: inherit; font-size: 12px; border: 1px dashed #999; background: none; border-radius: 999px; padding: 4px 10px; color: var(--ink); cursor: pointer; }
+  /* Allergies, search pills, categories */
+  .allergy-bar { margin-top: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ab-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .achip { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; padding: 5px 11px; border: var(--line); border-radius: 999px; background: var(--green); color: var(--cream); }
+  .achip svg { width: 14px; height: 14px; }
+  .achip.temp { background: #fff; color: var(--ink); border-style: dashed; }
+  .achip.temp .x { font-weight: 700; margin-left: 2px; }
+  .ab-edit { font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; padding: 6px 4px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; font-size: 13px; }
+  .pills:empty { display: none; }
+  .pills .lbl { font-weight: 700; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 5px 10px; border: var(--line); border-radius: 999px; background: var(--lilac); }
+  .pill .x { font-weight: 700; }
+  .note { font-size: 13px; line-height: 1.4; margin-top: 10px; }
+  .cats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .cat { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; min-height: 64px; padding: 9px 10px; border: var(--line); border-radius: 14px; background: #fff; font-size: 13px; font-weight: 700; text-align: left; line-height: 1.15; transition: background .2s, transform .12s; }
+  .cat svg { width: 20px; height: 20px; }
+  .cat:active { transform: scale(.97); }
+  .cat[aria-pressed="true"] { background: var(--green); color: var(--cream); }
+  .askbox { margin-top: 10px; display: flex; align-items: center; gap: 8px; border: var(--line); border-radius: 18px; background: #fff; padding: 0 8px 0 14px; min-height: 52px; }
+  .askbox input { flex: 1; border: 0; background: none; font: inherit; font-size: 15px; min-height: 44px; outline: none; color: var(--ink); min-width: 0; }
+  .askbox button { width: 40px; height: 40px; border-radius: 12px; border: var(--line); background: var(--green); color: var(--cream); font-size: 17px; flex: none; }
+  .answer .lead { margin: 0 0 8px; }
+  .alist { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 18px; }
+  .arow { display: flex; justify-content: space-between; align-items: center; min-height: 52px; padding: 0 16px; border: var(--line); border-radius: 16px; background: #fff; font-size: 16px; font-weight: 600; }
+  .arow .sw { width: 46px; height: 28px; border: var(--line); border-radius: 999px; background: var(--cream); position: relative; transition: background .2s; flex: none; }
+  .arow .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: var(--ink); transition: transform .2s var(--ease); }
+  .arow[aria-pressed="true"] .sw { background: var(--mint); }
+  .arow[aria-pressed="true"] .sw::after { transform: translateX(17px); background: var(--green); }
   .footnote { font-size: 12px; color: #555; margin-top: 18px; line-height: 1.45; }
 
   /* ---------- Detail screen ---------- */
@@ -293,19 +322,21 @@
         <button class="go" type="submit" aria-label="Search">→</button>
       </form>
 
-      <div class="chips" role="group" aria-label="Filters">
-        <button class="chip" data-filter="noGluten" aria-pressed="true">No gluten</button>
-        <button class="chip" data-filter="forTwo" aria-pressed="false">For 2</button>
-        <button class="chip" data-filter="under30" aria-pressed="false">Under £30</button>
-        <button class="chip" data-filter="nearMe" aria-pressed="false">Near me</button>
-      </div>
-
-      <p class="understood" id="understood" aria-live="polite"></p>
       <div class="tries" aria-label="Example searches">Try:
         <button type="button" data-try="No milk, under £15">No milk, under £15</button>
-        <button type="button" data-try="Sesame-free near me">Sesame-free near me</button>
-        <button type="button" data-try="Something spicy, gluten-free">Something spicy, gluten-free</button>
+        <button type="button" data-try="Something spicy for two">Something spicy for two</button>
+        <button type="button" data-try="Sesame-free, near me">Sesame-free, near me</button>
       </div>
+
+      <div class="allergy-bar" aria-live="polite">
+        <span class="ab-label">Your allergies</span>
+        <span id="allergy-chips" style="display:contents"></span>
+        <button type="button" class="ab-edit" id="edit-allergies">Edit</button>
+      </div>
+
+      <div class="pills" id="understood" aria-live="polite"></div>
+
+      <div class="cats" role="group" aria-label="Categories" id="cats"></div>
 
       <div id="results"></div>
 
@@ -328,7 +359,12 @@
 
       <p class="section-label">Ask nibble. about this dish</p>
       <div class="questions" id="d-questions"></div>
+      <form class="askbox" id="ask-form">
+        <input type="text" id="ask-input" aria-label="Ask your own question about this dish" placeholder="Or ask your own question…" autocomplete="off">
+        <button type="submit" aria-label="Ask">→</button>
+      </form>
       <div class="chat" id="d-chat" aria-live="polite"></div>
+
 
       <div class="dock">
         <button class="btn-primary" id="ask-btn">Ask the restaurant</button>
@@ -378,6 +414,14 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <div class="scrim" id="scrim2"></div>
+  <div class="sheet" id="allergy-sheet" role="dialog" aria-modal="true" aria-labelledby="as-title">
+    <div class="grab"></div>
+    <h2 class="headline" id="as-title">Your allergies</h2>
+    <p class="to">Saved to your profile. Every search and menu uses them.</p>
+    <div class="alist" id="allergy-list"></div>
+    <button class="btn-primary" id="allergy-done">Done</button>
+  </div>
 </main>
 
 <script>
@@ -420,83 +464,135 @@ const DISHES = [
 ];
 
 const QUESTIONS = [
-  { id: "peanut", text: "Is this safe for my son's peanut allergy?", allergen: "peanuts" },
-  { id: "gluten", text: "Is it cooked near anything with gluten?",   allergen: "gluten" },
-  { id: "milk",   text: "Can it be made without milk?",              allergen: "milk" }
+  { text: "Is this safe for my son's peanut allergy?" },
+  { text: "Is it cooked near anything with gluten?" },
+  { text: "Can it be made without milk?" }
 ];
 
-/* ---------- State ---------- */
-const filters = { noGluten: true, forTwo: false, under30: false, nearMe: false, maxPrice: null, avoid: [], keywords: [] };
+/* Allergens the prototype understands. "contains" in the dish data uses these ids. */
+const ALLERGENS = [
+  { id: "gluten",  label: "gluten",  words: "gluten|coeliac|celiac|wheat" },
+  { id: "milk",    label: "milk",    words: "milk|dairy|lactose|cheese|butter|cream" },
+  { id: "peanuts", label: "peanuts", words: "peanuts?" },
+  { id: "nuts",    label: "tree nuts", words: "tree nuts?|nuts|cashews?|almonds?|walnuts?|pistachios?" },
+  { id: "sesame",  label: "sesame",  words: "sesame" },
+  { id: "soy",     label: "soy",     words: "soy|soya|tofu" },
+  { id: "fish",    label: "fish",    words: "fish|salmon|tuna" }
+];
+const LABEL = id => ALLERGENS.find(a => a.id === id).label;
+
+/* Categories, like the app's own browse tiles */
+const ICONS = {
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  pin:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+  leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15"/><path d="M5 19 13 11"/></svg>',
+  bowl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/></svg>',
+  flame:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-5 5-5 8a7 7 0 0 0 7 7z"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg>'
+};
+const CATEGORIES = [
+  { id: "fast",    label: "Fast delivery", icon: "bolt",  test: d => d.mins <= 25 },
+  { id: "nearby",  label: "Nearby",        icon: "pin",   test: d => RESTAURANTS[d.rest].km <= 1.5 },
+  { id: "healthy", label: "Healthy",       icon: "leaf",  test: d => ["poke", "curry"].includes(d.id) },
+  { id: "comfort", label: "Comfort food",  icon: "heart", test: d => ["chicken", "pizza", "risotto"].includes(d.id) },
+  { id: "bowls",   label: "Rice & bowls",  icon: "bowl",  test: d => ["poke", "kofta", "curry", "risotto"].includes(d.id) },
+  { id: "spicy",   label: "Spicy",         icon: "flame", test: d => ["curry"].includes(d.id) }
+];
 
 /* Words people use for each dish, so typed searches can match them */
 const TAGS = {
   chicken: ["chicken", "roast", "meat", "potatoes"],
-  poke:    ["salmon", "poke", "seafood", "japanese", "bowl"],
+  poke:    ["salmon", "poke", "seafood", "japanese", "bowl", "healthy"],
   kofta:   ["lamb", "kofta", "meat", "rice", "middle eastern"],
   risotto: ["mushroom", "risotto", "vegetarian", "italian", "rice"],
-  curry:   ["curry", "thai", "spicy", "rice"],
+  curry:   ["curry", "thai", "spicy", "rice", "healthy"],
   pizza:   ["pizza", "margherita", "italian", "vegetarian"]
 };
 
+/* ---------- State ---------- */
+const saved = new Set(["gluten"]);   // Sam's saved allergies (profile)
+const search = { allergens: [], forTwo: false, maxPrice: null, nearMe: false, keywords: [], text: "" };
+let category = null;
+const activeAllergens = () => [...new Set([...saved, ...search.allergens])];
+
 /* ---------------------------------------------------------
    TYPED SEARCH
-   A simple rule-based reader stands in for the AI here: it picks
+   A simple rule-based reader stands in for the AI here. It picks
    out allergies, group size, budget, distance and dish words from
-   what someone types, then sets the same filters as the chips.
-   It never decides safety; results still come only from what the
-   restaurant has confirmed.
+   what someone types and shows what it understood, so people can
+   correct it. It never decides safety: results still come only
+   from what the restaurant has confirmed.
    --------------------------------------------------------- */
-const ALLERGENS = [
-  { id: "milk",    label: "milk",    words: "milk|dairy|lactose" },
-  { id: "sesame",  label: "sesame",  words: "sesame" },
-  { id: "soy",     label: "soy",     words: "soy|soya" },
-  { id: "fish",    label: "fish",    words: "fish" },
-  { id: "peanuts", label: "peanuts", words: "peanuts?" },
-  { id: "nuts",    label: "nuts",    words: "nuts?|tree nuts?|cashews?|almonds?" }
-];
-function parseQuery(text) {
-  const s = " " + text.toLowerCase() + " ";
-  const avoid = [];
+function allergensToAvoid(s) {
+  const out = [];
   for (const a of ALLERGENS) {
     const w = a.words;
-    const re = new RegExp(`(no|without|avoid|avoiding|free of|allergic to)\\s+(any\\s+)?(${w})\\b|\\b(${w})[- ]?free\\b|\\b(${w})\\s+allerg`);
-    if (re.test(s)) avoid.push(a.id);
+    const re = new RegExp(`(no|without|avoid|avoiding|free of|allergic to|allergy to|can't have|cannot have)\\s+(any\\s+)?(${w})\\b|\\b(${w})[- ]?free\\b|\\b(${w})\\s+(allerg|intoleran)`);
+    if (re.test(s)) out.push(a.id);
   }
-  const noGluten = /gluten|coeliac|celiac/.test(s);
+  if (/coeliac|celiac/.test(s) && !out.includes("gluten")) out.push("gluten");
+  return out;
+}
+function parseQuery(text) {
+  const s = " " + text.toLowerCase() + " ";
+  const allergens = allergensToAvoid(s);
   const forTwo = /\bfor (two|2)\b|\btwo of us\b|\bcouple\b|\bboth of us\b/.test(s);
   const m = s.match(/(under|below|less than|max|up to|no more than)\s*£?\s*(\d+)/);
   const maxPrice = m ? Number(m[2]) : null;
   const nearMe = /\bnear\b|nearby|close by|\bclose\b|walking/.test(s);
-  let keywords = [];
-  const blanked = avoid.length ? s.replace(new RegExp(ALLERGENS.map(a => a.words).join("|"), "g"), " ") : s;
-  for (const tagList of Object.values(TAGS)) for (const t of tagList) if (new RegExp(`\\b${t}\\b`).test(blanked) && !keywords.includes(t)) keywords.push(t);
-  return { noGluten, forTwo, maxPrice, nearMe, avoid, keywords };
+  const blanked = s.replace(new RegExp(ALLERGENS.map(a => a.words).join("|"), "g"), " ");
+  const keywords = [];
+  for (const tagList of Object.values(TAGS)) for (const t of tagList)
+    if (new RegExp(`\\b${t}\\b`).test(blanked) && !keywords.includes(t)) keywords.push(t);
+  return { allergens, forTwo, maxPrice, nearMe, keywords, text };
 }
 function applyQuery(text) {
-  const p = parseQuery(text);
-  Object.assign(filters, p, { under30: p.maxPrice === 30 });
-  syncChips();
-  const bits = [];
-  if (filters.noGluten) bits.push("no gluten");
-  filters.avoid.forEach(a => bits.push("no " + ALLERGENS.find(x => x.id === a).label));
-  if (filters.forTwo) bits.push("for 2");
-  if (filters.maxPrice) bits.push(`under £${filters.maxPrice}${filters.forTwo ? " for 2" : ""}`);
-  if (filters.nearMe) bits.push("near me");
-  if (filters.keywords.length) bits.push(filters.keywords.join(" or "));
-  $("#understood").innerHTML = bits.length
-    ? `<b>Looking for:</b> ${bits.join(" · ")}`
-    : `I couldn't pick out an allergy, budget or dish from that. Try something like “no milk, under £15”.`;
-  renderResults();
+  Object.assign(search, parseQuery(text));
+  render();
 }
-function syncChips() {
-  document.querySelectorAll("[data-filter]").forEach(c => {
-    const k = c.dataset.filter;
-    const on = k === "under30" ? filters.maxPrice === 30 : !!filters[k];
-    c.setAttribute("aria-pressed", on);
-  });
+
+function renderAllergyBar() {
+  const chips = [...saved].map(id => `<span class="achip">${ICONS.shield}${cap(LABEL(id))}</span>`);
+  search.allergens.filter(id => !saved.has(id)).forEach(id =>
+    chips.push(`<button type="button" class="achip temp" data-rm="allergen:${id}" aria-label="Remove ${LABEL(id)} for this search">${cap(LABEL(id))} · this search <span class="x">✕</span></button>`));
+  $("#allergy-chips").innerHTML = chips.length ? chips.join("") : `<span class="note" style="margin:0">None saved</span>`;
 }
+function renderPills() {
+  const p = [];
+  if (search.forTwo) p.push(["forTwo", "For 2"]);
+  if (search.maxPrice) p.push(["maxPrice", `Under £${search.maxPrice}${search.forTwo ? " for 2" : ""}`]);
+  if (search.nearMe) p.push(["nearMe", "Near me"]);
+  search.keywords.forEach(k => p.push(["kw:" + k, cap(k)]));
+  const el = $("#understood");
+  if (p.length) {
+    el.innerHTML = `<span class="lbl">From your search:</span>` + p.map(([k, l]) =>
+      `<button type="button" class="pill" data-rm="${k}" aria-label="Remove ${l}">${l} <span class="x">✕</span></button>`).join("");
+  } else if (search.text && !search.allergens.length) {
+    el.innerHTML = `<span class="note" style="margin:0">I couldn't pick out an allergy, budget or dish from that. Try something like “no milk, under £15”.</span>`;
+  } else el.innerHTML = "";
+}
+function renderCats() {
+  $("#cats").innerHTML = CATEGORIES.map(c =>
+    `<button type="button" class="cat" data-cat="${c.id}" aria-pressed="${category === c.id}">${ICONS[c.icon]}<span>${c.label}</span></button>`).join("");
+}
+function render() { renderAllergyBar(); renderPills(); renderCats(); renderResults(); }
+
+document.addEventListener("click", e => {
+  const rm = e.target.closest("[data-rm]");
+  if (rm) {
+    const k = rm.dataset.rm;
+    if (k.startsWith("allergen:")) search.allergens = search.allergens.filter(a => a !== k.slice(9));
+    else if (k.startsWith("kw:")) search.keywords = search.keywords.filter(w => w !== k.slice(3));
+    else if (k === "maxPrice") search.maxPrice = null;
+    else search[k] = false;
+    render(); return;
+  }
+  const cat = e.target.closest("[data-cat]");
+  if (cat) { category = category === cat.dataset.cat ? null : cat.dataset.cat; render(); }
+});
 let current = null;          // dish on the detail screen
-let lastQuestion = null;
+let lastAsked = { allergens: [], text: "" };
 const history = ["search"];
 
 /* ---------- Helpers ---------- */
@@ -543,21 +639,20 @@ document.querySelectorAll("[data-back]").forEach(b => b.onclick = back);
    ========================================================= */
 function passes(d) {
   const r = RESTAURANTS[d.rest];
-  const total = filters.forTwo ? d.price * 2 : d.price;
-  if (filters.noGluten && d.gluten === true) return false;   // confirmed to contain gluten
-  const cap = filters.maxPrice;
-  if (cap && total > cap) return false;
-  // Only exclude a dish when the restaurant has CONFIRMED it contains the allergen.
-  // Unconfirmed dishes stay visible, labelled, in the second group.
-  if (d.status === "confirmed" && filters.avoid.some(a => d.contains.includes(a))) return false;
-  if (filters.keywords.length && !filters.keywords.some(k => TAGS[d.id].includes(k))) return false;
-  if (filters.nearMe && r.km > 2) return false;
+  const total = search.forTwo ? d.price * 2 : d.price;
+  // Only hide a dish when the restaurant has CONFIRMED it contains one of your allergens.
+  // Unconfirmed dishes stay visible, labelled, in their own group.
+  if (d.status === "confirmed" && activeAllergens().some(a => d.contains.includes(a))) return false;
+  if (search.maxPrice && total > search.maxPrice) return false;
+  if (search.nearMe && r.km > 2) return false;
+  if (search.keywords.length && !search.keywords.some(k => TAGS[d.id].includes(k))) return false;
+  if (category && !CATEGORIES.find(c => c.id === category).test(d)) return false;
   return true;
 }
 
 function cardHTML(d, i) {
   const r = RESTAURANTS[d.rest];
-  const price = filters.forTwo ? `${money(d.price * 2)} for 2` : money(d.price);
+  const price = search.forTwo ? `${money(d.price * 2)} for 2` : money(d.price);
   return `<button class="card" data-dish="${d.id}" style="animation-delay:${i * 40}ms" aria-label="${d.name} from ${r.name}">
     <div class="img" style="background:${d.colour}">${imgHTML(d.img, "", d.emoji)}</div>
     <div class="card-body">
@@ -573,33 +668,40 @@ function renderResults() {
   const shown = DISHES.filter(passes);
   const confirmed = shown.filter(d => d.status === "confirmed");
   const pending = shown.filter(d => d.status === "unconfirmed");
+  const al = activeAllergens();
   let i = 0;
   const group = (title, items, emptyMsg) => `
     <p class="section-label">${title} <span class="count">${items.length}</span></p>
     ${items.length ? items.map(d => cardHTML(d, i++)).join("") : `<div class="empty">${emptyMsg}</div>`}`;
+  const free = al.length ? `Confirmed free of ${list(al.map(LABEL))}` : "Confirmed by the restaurant";
   $("#results").innerHTML =
-    group("Confirmed by the restaurant", confirmed, "No confirmed dishes match these filters. Try removing one.") +
+    group(free, confirmed, "Nothing confirmed matches yet. Try another category or search.") +
     group("Not confirmed yet", pending, "Nothing waiting for confirmation here.");
   document.querySelectorAll(".card").forEach(c => c.onclick = () => openDish(c.dataset.dish));
 }
 
-document.querySelectorAll("[data-filter]").forEach(chip => {
-  chip.onclick = () => {
-    const k = chip.dataset.filter;
-    if (k === "under30") { filters.maxPrice = filters.maxPrice === 30 ? null : 30; filters.under30 = filters.maxPrice === 30; }
-    else filters[k] = !filters[k];
-    syncChips();
-    $("#understood").innerHTML = "";
-    renderResults();
-  };
-});
+/* ---------- Edit saved allergies ---------- */
+function openAllergies() {
+  $("#allergy-list").innerHTML = ALLERGENS.map(a =>
+    `<button type="button" class="arow" data-al="${a.id}" aria-pressed="${saved.has(a.id)}">${cap(a.label)}<span class="sw" aria-hidden="true"></span></button>`).join("");
+  document.querySelectorAll("[data-al]").forEach(b => b.onclick = () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on);
+    on ? saved.add(b.dataset.al) : saved.delete(b.dataset.al);
+  });
+  $("#scrim2").classList.add("open"); $("#allergy-sheet").classList.add("open");
+}
+function closeAllergies() { $("#scrim2").classList.remove("open"); $("#allergy-sheet").classList.remove("open"); render(); }
+$("#edit-allergies").onclick = openAllergies;
+$("#allergy-done").onclick = closeAllergies;
+$("#scrim2").onclick = closeAllergies;
 
 /* =========================================================
    SCREEN 2 – Dish detail
    ========================================================= */
 function openDish(id) {
   current = DISHES.find(d => d.id === id);
-  lastQuestion = null;
+  lastAsked = { allergens: [], text: "" };
   const d = current, r = RESTAURANTS[d.rest];
   $("#d-img").style.background = d.colour;
   $("#d-img").innerHTML = imgHTML(d.img, d.name, d.emoji);
@@ -614,68 +716,96 @@ function openDish(id) {
       <span>The restaurant hasn't confirmed allergens for this dish.</span>`;
   }
 
-  $("#d-questions").innerHTML = QUESTIONS.map(q =>
-    `<button class="chip" data-q="${q.id}">${q.text}</button>`).join("");
+  $("#d-questions").innerHTML = QUESTIONS.map((q, n) =>
+    `<button class="chip" data-q="${n}">${q.text}</button>`).join("");
   $("#d-chat").innerHTML = "";
-  document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => ask(b));
+  $("#ask-input").value = "";
+  document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { ask(QUESTIONS[b.dataset.q].text); b.remove(); });
   go("detail");
 }
 
 /* ---------------------------------------------------------
-   SCRIPTED AI ANSWERS
-   These answers are NOT generated by a real model. They are
-   scripted templates built only from the dish data above, to
-   show how nibble. would answer: state what the restaurant has
-   confirmed, quote the kitchen note, and always make clear
-   that only the restaurant can say how the dish is prepared.
+   ANSWERS
+   These are NOT generated by a real model. A simple reader finds
+   the allergens in the question, and the answer is built only
+   from the dish data: what the restaurant confirmed, its kitchen
+   note, and a clear line that only the restaurant can say how
+   the dish is prepared. If it can't tell what's being asked, it
+   says so instead of guessing.
    --------------------------------------------------------- */
-function scriptedAnswer(d, q) {
+function mentioned(s) {
+  return ALLERGENS.filter(a => new RegExp(`\\b(${a.words})\\b`).test(s)).map(a => a.id);
+}
+function answerFor(d, text) {
   const r = RESTAURANTS[d.rest];
-  let confirmed;
-  if (d.status !== "confirmed") {
-    confirmed = `<ul><li><b>?</b><span>${r.name} hasn't confirmed the allergens in this dish yet, so I can't tell you whether it contains ${q.allergen}.</span></li></ul>`;
-  } else {
-    const inIt = d.contains.includes(q.allergen);
-    const items = [`<li><b>•</b><span>Contains: ${list(d.contains.map(cap))}.</span></li>`];
-    items.push(inIt
-      ? `<li><b>!</b><span>${cap(q.allergen)} <strong>is</strong> on the restaurant's confirmed list for this dish.</span></li>`
-      : `<li><b>•</b><span>${cap(q.allergen)} ${q.allergen.endsWith("s") ? "aren't" : "isn't"} on the restaurant's confirmed allergen list. That isn't the same as a guarantee.</span></li>`);
-    items.push(`<li><b>•</b><span>Confirmed by ${r.name} ${d.days} days ago.</span></li>`);
-    confirmed = `<ul>${items.join("")}</ul>`;
+  const s = " " + text.toLowerCase() + " ";
+  let allergens = mentioned(s);
+  let lead = "";
+  const aboutMe = /\bsafe\b|\bcan i (eat|have)\b|\bfor me\b|\bmy allerg/.test(s);
+  const aboutKitchen = /cook|prepar|fryer|fried|grill|cross|contamin|kitchen|trace|may contain|same (oil|surface|grill)/.test(s);
+  if (!allergens.length && aboutMe && activeAllergens().length) {
+    allergens = activeAllergens();
+    lead = `<p class="lead">Checking against your allergies: <strong>${list(allergens.map(LABEL))}</strong>.</p>`;
   }
   const kitchen = d.kitchen
     ? `<div class="kitchen"><strong>Kitchen note from ${r.name}</strong>“${d.kitchen}”</div>`
     : `<div class="kitchen"><strong>Kitchen note</strong>No note from the kitchen yet.</div>`;
-  return `<div class="answer">
+  const only = `<p class="only">Only ${r.name} can say how it's prepared and whether cross-contact is possible. Please ask them before you order.</p>`;
+
+  if (!allergens.length && !aboutKitchen) {
+    return { allergens, html: `<div class="answer">
+      <div class="who"><i>n.</i> nibble. assistant</div>
+      <p>I can only answer from the allergen information ${r.name} has confirmed, and I can't answer that one from it.</p>
+      <p style="margin-top:8px">It's best to ask them directly: tap <strong>Ask the restaurant</strong> below and I'll start the message for you.</p>
+    </div>` };
+  }
+  let body;
+  if (!allergens.length) {
+    body = `<h4 style="margin-top:0">How it's prepared</h4><p>I don't know how this dish is prepared. Here's what ${r.name} has told us:</p>`;
+  } else if (d.status !== "confirmed") {
+    body = `<h4 style="margin-top:0">What the restaurant has confirmed</h4>
+      <ul><li><b>?</b><span>${r.name} hasn't confirmed the allergens in this dish yet, so I can't tell you whether it contains ${list(allergens.map(LABEL))}.</span></li></ul>`;
+  } else {
+    const items = [`<li><b>•</b><span>Contains: ${list(d.contains.map(cap))}.</span></li>`];
+    allergens.forEach(a => {
+      const l = LABEL(a), plural = /s$/.test(l);
+      items.push(d.contains.includes(a)
+        ? `<li><b>!</b><span>${cap(l)} <strong>${plural ? "are" : "is"}</strong> on the restaurant's confirmed list for this dish.</span></li>`
+        : `<li><b>•</b><span>${cap(l)} ${plural ? "aren't" : "isn't"} on the restaurant's confirmed allergen list. That isn't the same as a guarantee.</span></li>`);
+    });
+    items.push(`<li><b>•</b><span>Confirmed by ${r.name} ${d.days} days ago.</span></li>`);
+    body = `<h4 style="margin-top:0">What the restaurant has confirmed</h4><ul>${items.join("")}</ul>`;
+  }
+  return { allergens, html: `<div class="answer">
     <div class="who"><i>n.</i> nibble. assistant</div>
-    <h4 style="margin-top:0">What the restaurant has confirmed</h4>
-    ${confirmed}
-    ${kitchen}
-    <p class="only">Only ${r.name} can say how it's prepared and whether cross-contact is possible. Please ask them before you order.</p>
-  </div>`;
+    ${lead}${body}${kitchen}${only}
+  </div>` };
 }
 
-function ask(btn) {
-  const q = QUESTIONS.find(x => x.id === btn.dataset.q);
+function esc(t) { return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+let busy = false;
+function ask(text) {
+  if (busy || !text.trim()) return;
+  busy = true;
   const d = current;
-  lastQuestion = q;
-  document.querySelectorAll("[data-q]").forEach(b => b.disabled = true);
   const chat = $("#d-chat");
-  chat.insertAdjacentHTML("beforeend", `<div class="bubble-q">${q.text}</div>`);
+  chat.insertAdjacentHTML("beforeend", `<div class="bubble-q">${esc(text)}</div>`);
   const typing = document.createElement("div");
   typing.className = "typing"; typing.setAttribute("aria-label", "nibble. is typing");
   typing.innerHTML = "<span></span><span></span><span></span>";
   chat.appendChild(typing);
   scrollToEnd();
   setTimeout(() => {
+    busy = false;
     if (current !== d) return;             // user left the screen
     typing.remove();
-    chat.insertAdjacentHTML("beforeend", scriptedAnswer(d, q));
-    btn.remove();
-    document.querySelectorAll("[data-q]").forEach(b => b.disabled = false);
+    const a = answerFor(d, text);
+    lastAsked = { allergens: a.allergens, text };
+    chat.insertAdjacentHTML("beforeend", a.html);
     scrollToEnd();
-  }, 1300);
+  }, 1200);
 }
+$("#ask-form").onsubmit = e => { e.preventDefault(); const t = $("#ask-input").value; $("#ask-input").value = ""; ask(t); };
 function scrollToEnd() {
   const s = $("#detail");
   requestAnimationFrame(() => s.scrollTo({ top: s.scrollHeight, behavior: "smooth" }));
@@ -684,11 +814,11 @@ function scrollToEnd() {
 /* ---------- Ask-the-restaurant sheet ---------- */
 function openSheet() {
   const d = current, r = RESTAURANTS[d.rest];
-  const topic = lastQuestion?.id === "peanut" ? "my son has a peanut allergy"
-              : lastQuestion?.id === "milk"   ? "I'm avoiding milk"
-              : "I have coeliac disease and need to avoid gluten";
+  const al = lastAsked.allergens.length ? lastAsked.allergens : activeAllergens();
+  const names = list(al.map(LABEL)) || "allergens";
+  const topic = /\bson\b/.test(lastAsked.text.toLowerCase()) ? `my son has a ${names} allergy` : `I need to avoid ${names}`;
   $("#sheet-to").innerHTML = `To <strong>${r.name}</strong> · usually replies ${r.reply}`;
-  $("#sheet-msg").value = `Hi ${r.name}, ${topic}. Could you tell me how the ${d.name.toLowerCase()} is prepared, and whether it's cooked near any ${lastQuestion ? lastQuestion.allergen : "gluten"}? Thank you!`;
+  $("#sheet-msg").value = `Hi ${r.name}, ${topic}. Could you tell me how the ${d.name.toLowerCase()} is prepared, and whether it's cooked near any ${names}? Thank you!`;
   $("#scrim").classList.add("open"); $("#sheet").classList.add("open");
   setTimeout(() => $("#sheet-msg").focus({ preventScroll: true }), 400);
 }
@@ -750,7 +880,8 @@ $("#confirm-btn").onclick = () => {
 };
 
 /* ---------- Init ---------- */
-$("#search-form").onsubmit = e => { e.preventDefault(); applyQuery($("#q").value); $("#q").blur(); };
+$("#search-form").onsubmit = e => { e.preventDefault(); applyQuery($("#q").value);
+ $("#q").blur(); };
 document.querySelectorAll("[data-try]").forEach(b => b.onclick = () => { $("#q").value = b.dataset.try; applyQuery(b.dataset.try); });
 applyQuery($("#q").value);
 renderAllergens();
