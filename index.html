@@ -123,7 +123,7 @@
   .qform { margin-top: 12px; display: flex; align-items: center; gap: 8px; background: #fff; border: var(--line); border-radius: 16px; padding: 0 6px 0 12px; min-height: 52px; }
   .qform svg.spark { width: 16px; height: 16px; flex: none; color: var(--green); }
   .qform input { flex: 1; border: 0; outline: none; background: none; font: inherit; font-size: 14.5px; min-width: 0; min-height: 44px; color: var(--ink); }
-  .qform input::placeholder { color: #9a978d; }
+  .qform input::placeholder, .askrow input::placeholder { color: #6F6C63; }
   .clear { width: 30px; height: 30px; border-radius: 50%; background: var(--grey); display: grid; place-items: center; flex: none; }
   .clear svg { width: 12px; height: 12px; }
   .frow { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -150,7 +150,7 @@
   .rv { display: block; margin: 18px auto 0; font-size: 13px; font-weight: 700; color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
 
   /* ---------- DISH ---------- */
-  #dish { background: var(--butter); }
+  #dish { background: var(--cream); }
   #dish .pad { padding-bottom: 110px; }
   .dhero { margin: 6px auto 0; width: 190px; height: 190px; transition: width .35s var(--ease), height .35s var(--ease), margin .35s var(--ease); }
   .dtop { transition: all .35s var(--ease); }
@@ -206,7 +206,7 @@
   .askrow { margin-top: 10px; display: flex; align-items: center; gap: 8px; background: #fff; border: var(--line); border-radius: 16px; padding: 0 6px 0 12px; min-height: 50px; }
   .askrow input { flex: 1; border: 0; outline: none; background: none; font: inherit; font-size: 14px; min-width: 0; min-height: 44px; }
   .askrow svg.spark { width: 15px; height: 15px; color: var(--green); flex: none; }
-  .dock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 12px 18px 18px; background: linear-gradient(to top, var(--butter) 75%, rgba(247,223,114,0)); display: flex; gap: 10px; }
+  .dock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 12px 18px 18px; background: linear-gradient(to top, var(--cream) 75%, rgba(255,248,236,0)); display: flex; gap: 10px; }
   .qty { display: flex; align-items: center; gap: 12px; background: #fff; border: var(--line); border-radius: 16px; padding: 0 12px; font-weight: 700; }
   .qty button { width: 24px; height: 44px; font-size: 18px; }
 
@@ -669,7 +669,7 @@ function renderHome() {
   $("#home-sec-title").textContent = ids.length ? `No ${listWords(ids.map(one))} ingredients` : "Popular dishes";
   const free = DISHES.filter(d => labelFor(d, ids).kind === "free");
   $("#home-dishes").innerHTML = free.map(d => { const r = RESTAURANTS[d.rest];
-    return `<button class="card hcard" data-dish="${d.id}">${artHTML(d)}<div><h3>${d.name}</h3><p>${r.name} · ${money(d.price)} · ${d.mins} min</p><span class="tag ok">${I.check}Confirmed ${ago(d.days)}</span></div></button>`; }).join("");
+    return `<button class="card hcard" data-dish="${d.id}">${artHTML(d)}<div><h3>${d.name}</h3><p>${r.name} · ${money(d.price)} · ${d.mins} min</p>${tagHTML(labelFor(d, ids))}</div></button>`; }).join("");
   const counted = Object.entries(RESTAURANTS).map(([k, r]) => [k, r, DISHES.filter(d => d.rest === k && labelFor(d, ids).kind === "free").length]).sort((a, b) => b[2] - a[2]);
   $("#home-rests").innerHTML = counted.map(([k, r, n]) => {
     const img = DISHES.find(d => d.id === r.img);
