@@ -121,6 +121,12 @@
   .bigcard .btag { position: absolute; top: 10px; left: 10px; z-index: 1; background: #fff; color: var(--green); font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
   .bigcard h3 { font-size: 15px; margin-top: 8px; }
   .bigcard p { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  /* Home screen: show the whole dish, with breathing room inside each tile */
+  #home .art img { inset: 7%; width: 86%; height: 86%; object-fit: contain; }
+  #home .cui .art img { inset: 13%; width: 74%; height: 74%; }
+  #home .bigcard .art img { inset: 8% auto; left: 50%; transform: translateX(-50%); width: auto; height: 84%; aspect-ratio: 1; }
+  #home .promo .pi img { position: static; }
+  #home .art img.fade { -webkit-mask-image: radial-gradient(circle, #000 64%, transparent 71%); mask-image: radial-gradient(circle, #000 64%, transparent 71%); }
   .hscroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px 4px; }
   .hscroll::-webkit-scrollbar { display: none; }
   .hcard { flex: none; width: 272px; display: flex; gap: 12px; padding: 10px; text-align: left; }
@@ -368,7 +374,7 @@
       <div class="hscroll" id="home-picks"></div>
       <div class="between sec"><span class="label">Fastest delivery</span><span data-i="arrow" style="width:18px;color:var(--green)"></span></div>
       <div class="hscroll" id="home-fast"></div>
-      <div class="between sec"><span class="label">New on Deliveroo</span><span data-i="arrow" style="width:18px;color:var(--green)"></span></div>
+      <div class="between sec"><span class="label">New near you</span><span data-i="arrow" style="width:18px;color:var(--green)"></span></div>
       <div class="hscroll" id="home-new"></div>
       <div class="between sec"><span class="label">Healthy choices</span><span data-i="arrow" style="width:18px;color:var(--green)"></span></div>
       <div class="hscroll" id="home-healthy"></div>
@@ -700,9 +706,9 @@ function renderHome() {
   // A normal delivery home screen: no allergy information until someone opens Nibble.
   const D = id => DISHES.find(d => d.id === id);
   const dishCard = id => { const d = D(id), r = RESTAURANTS[d.rest];
-    return `<button class="card hcard" data-dish="${d.id}">${artHTML(d)}<div><h3>${d.name}</h3><p>${r.name} · ${money(d.price)} · ${d.mins} min</p></div></button>`; };
+    return `<button class="card hcard" data-dish="${d.id}">${artHTML(d, `background:${IMGBG[d.id]}`)}<div><h3>${d.name}</h3><p>${r.name} · ${money(d.price)} · ${d.mins} min</p></div></button>`; };
   const restCard = (k, mins) => { const r = RESTAURANTS[k], img = D(r.img);
-    return `<button class="card hcard" data-rest="${k}" style="width:250px">${artHTML(img, "width:64px;height:64px")}<div><h3>${r.name}</h3><p>${r.rating} · ${r.cuisine} · ${mins} min</p></div></button>`; };
+    return `<button class="card hcard" data-rest="${k}" style="width:250px">${artHTML(img, `width:64px;height:64px;background:${IMGBG[img.id]}`)}<div><h3>${r.name}</h3><p>${r.rating} · ${r.cuisine} · ${mins} min</p></div></button>`; };
   const bigCard = (k, dishId, meta, tag) => { const r = RESTAURANTS[k], d = D(dishId);
     return `<button class="bigcard" data-rest="${k}"><div class="art${d.crop ? " crop" : ""}" style="background:${IMGBG[d.id] || d.bg}">${tag ? `<span class="btag">${tag}</span>` : ""}<img src="${d.img}" alt=""></div><h3>${r.name}</h3><p>${meta}</p></button>`; };
   $("#home-again").innerHTML = ["chicken", "poke", "pizza"].map(dishCard).join("");
@@ -713,6 +719,7 @@ function renderHome() {
   $("#home-fast").innerHTML = [["olive", 15], ["basil", 18]].map(x => restCard(...x)).join("");
   $("#home-new").innerHTML = bigCard("green", "curry", "New · Thai · 35–45 min", "New") + bigCard("basil", "pesto", "4.6 · Pasta · 25–35 min", null);
   $("#home-healthy").innerHTML = [["tokyo", 25], ["green", 35]].map(x => restCard(...x)).join("");
+  const pz = D("pizza").img; document.querySelectorAll("#home .art img").forEach(im => { if (im.getAttribute("src") === pz) im.classList.add("fade"); });
 }
 $("#home-search").onclick = () => toast("Regular search isn’t part of this prototype. Tap “Food allergy?” to try Nibble.");
 document.addEventListener("click", e => {
