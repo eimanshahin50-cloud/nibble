@@ -254,14 +254,16 @@
   .add { position: absolute; right: -4px; bottom: -4px; width: 28px; height: 28px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; font-weight: 800; }
   .showmore { width: 100%; margin-top: 10px; padding: 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
   .showmore svg { width: 14px; height: 14px; }
-  .basketbar { position: absolute; left: 14px; right: 14px; bottom: 16px; z-index: 6; display: none; padding: 0 18px; width: auto; }
+  .basketbar { position: sticky; bottom: 16px; margin: -40px 14px 16px; width: calc(100% - 28px); z-index: 6; display: none; }
+  .basketbar { padding: 0 24px !important; box-sizing: border-box; }
+  .screen.has-basket .pad { padding-bottom: 70px; }
   .basketbar .side { flex: 0 0 72px; display: flex; }
   .basketbar .side.r { justify-content: flex-end; }
   .basketbar.show { display: flex; }
   .basketbar .count { background: var(--butter); color: var(--ink); border-radius: 8px; padding: 1px 8px; font-size: 13px; }
 
   /* ---------- CHECKOUT ---------- */
-  .ckrow { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px 14px 14px; margin-top: 10px; }
+  .ckrow { display: flex; align-items: flex-start; gap: 12px; padding: 16px 24px 16px 16px; margin-top: 10px; }
   .ckrow > b { line-height: 1.35; padding-top: 1px; white-space: nowrap; }
   .ckrow > b, .ckrow > div > b { font-size: 13.5px; line-height: 1.35; }
   .ckrow .pin { width: 40px; height: 40px; border-radius: 12px; background: var(--pink); display: grid; place-items: center; }
@@ -382,6 +384,7 @@
       <div class="hscroll" id="home-healthy"></div>
       <button class="rv" data-go="review">Restaurant view (for the demo)</button>
     </div>
+    <button class="btn basketbar" data-basket aria-label="View basket"></button>
   </section>
 
   <!-- ===== 2. NIBBLE: search start + results ===== -->
@@ -410,6 +413,7 @@
       <div id="results"></div>
       <p class="foot">nibble. only uses allergen information the restaurant has confirmed. Dishes that aren’t confirmed yet are shown separately, so you can ask before you order.</p>
     </div>
+    <button class="btn basketbar" data-basket aria-label="View basket"></button>
   </section>
 
   <!-- ===== 3. DISH + the answer ===== -->
@@ -456,7 +460,7 @@
       <div class="chips" style="margin-top:14px" id="m-tabs"></div>
       <div id="m-list"></div>
     </div>
-    <button class="btn basketbar" id="basketbar"></button>
+    <button class="btn basketbar" id="basketbar" data-basket aria-label="View basket"></button>
   </section>
 
   <!-- ===== 5. CHECKOUT ===== -->
@@ -1055,12 +1059,16 @@ $("#qplus").onclick = () => { qty++; drawAdd(); };
 $("#addbtn").onclick = () => { addToBasket(current, qty); toast(`Added to your basket.`); back(); };
 function addToBasket(id, n = 1) { const b = basket.find(x => x.id === id); b ? b.qty += n : basket.push({ id, qty: n }); drawBasketBar(); }
 function drawBasketBar() {
+  // The basket bar shows on the home screen, in Nibble and on menus, so you can always get to your basket
   const n = basket.reduce((s, b) => s + b.qty, 0), t = basket.reduce((s, b) => s + b.qty * DISHES.find(d => d.id === b.id).price, 0);
-  const bar = $("#basketbar"); bar.classList.toggle("show", n > 0);
-  bar.innerHTML = `<span class="side"><span class="count">${n}</span></span><span style="flex:1;text-align:center">View basket</span><span class="side r">${money(t)}</span>`;
-  bar.style.justifyContent = "space-between"; bar.style.padding = "0 18px";
+  document.querySelectorAll("[data-basket]").forEach(bar => {
+    bar.classList.toggle("show", n > 0);
+    bar.innerHTML = `<span class="side"><span class="count">${n}</span></span><span style="flex:1;text-align:center">View basket</span><span class="side r">${money(t)}</span>`;
+    bar.style.justifyContent = "space-between";
+    bar.closest(".screen").classList.toggle("has-basket", n > 0);
+  });
 }
-$("#basketbar").onclick = () => { renderCheckout(); go("checkout"); };
+document.querySelectorAll("[data-basket]").forEach(bar => bar.onclick = () => { renderCheckout(); go("checkout"); });
 
 /* =========================================================
    RESTAURANT MENU: the filter follows you
@@ -1104,7 +1112,7 @@ document.addEventListener("click", e => { const a = e.target.closest("[data-add]
 function renderCheckout() {
   const ids = active();
   $("#ck-items").innerHTML = basket.map(b => { const d = DISHES.find(x => x.id === b.id);
-    return `<div class="card ckrow">${artHTML(d, "width:52px;height:52px")}<div style="flex:1"><b style="font-size:13.5px">${b.qty} × ${d.name}</b><div style="margin-top:5px">${tagHTML(labelFor(d, ids))}</div></div><b style="font-size:13.5px">${money(d.price * b.qty)}</b></div>`; }).join("");
+    return `<div class="card ckrow">${artHTML(d, "width:52px;height:52px")}<div style="flex:1 1 auto;min-width:0"><b style="font-size:13.5px">${b.qty} × ${d.name}</b><div style="margin-top:5px">${tagHTML(labelFor(d, ids))}</div></div><b class="ckprice" style="flex:0 0 auto;font-size:13.5px;line-height:1.35;white-space:nowrap;margin-right:10px">${money(d.price * b.qty)}</b></div>`; }).join("");
   const names = [...new Set(basket.map(b => RESTAURANTS[DISHES.find(d => d.id === b.id).rest].name))];
   $("#ck-kitchen").innerHTML = `<div class="row" style="align-items:flex-start"><div class="art" style="width:34px;height:34px;border-radius:0"><img src="${IMG.mascot}" alt=""></div><div style="flex:1"><h3>${st.forOther ? "Their allergies go to the kitchen" : "Your allergies go to the kitchen"}</h3><p>${andWords(names)} will see these on your order.</p></div></div>
     <div class="frow" style="margin-top:10px">${ids.length ? ids.map(a => `<span class="achip">${I.shield}${A(a).Label}</span>`).join("") : `<span class="muted" style="font-size:13px">No allergies added</span>`}<button class="link end" id="ck-edit">Edit</button></div>
@@ -1158,6 +1166,7 @@ $("#scrim").onclick = () => { closeSheets(); refreshAll(); };
 let tt; function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 3200); }
 function refreshAll() {
   renderHome();
+  drawBasketBar();
   if ($("#nibble").classList.contains("active") || stack.includes("nibble")) renderNibble();
   if (stack.includes("menu")) renderMenu();
   if (stack[stack.length - 1] === "dish") drawSugs();
