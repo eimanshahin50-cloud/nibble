@@ -263,17 +263,23 @@
   .basketbar .count { background: var(--butter); color: var(--ink); border-radius: 8px; padding: 1px 8px; font-size: 13px; }
 
   /* ---------- CHECKOUT ---------- */
-  .ckrow { display: flex; align-items: flex-start; gap: 12px; padding: 16px 24px 16px 16px; margin-top: 10px; }
+  .ckrow { display: flex; align-items: flex-start; gap: 14px; padding: 16px; margin-top: 12px; }
   .ckrow > b { line-height: 1.35; padding-top: 1px; white-space: nowrap; }
   .ckrow > b, .ckrow > div > b { font-size: 13.5px; line-height: 1.35; }
-  .ckrow .pin { width: 40px; height: 40px; border-radius: 12px; background: var(--pink); display: grid; place-items: center; }
-  .ckrow .pin svg { width: 18px; height: 18px; }
-  .kitchenbox { margin-top: 10px; background: var(--butter); border-radius: 18px; padding: 14px; }
+  .ckrow .pin { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--pink); display: grid; place-items: center; }
+  .ckrow .pin svg { width: 20px; height: 20px; }
+  .ckrow .body { flex: 1 1 auto; min-width: 0; align-self: center; }
+  .ckrow .body .tagrow { margin-top: 10px; }
+  .ckrow .end { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; min-width: 20px; height: 20px; font-size: 14px; font-weight: 700; line-height: 20px; white-space: nowrap; }
+  .ckrow .end svg { width: 18px; height: 18px; }
+  .ckrow h3 { font-size: 14px; line-height: 20px; font-weight: 700; }
+  .ckrow p { font-size: 12.5px; line-height: 18px; margin-top: 2px; }
+  .kitchenbox { margin-top: 12px; background: var(--butter); border-radius: 18px; padding: 16px; }
   .kitchenbox h3 { font-size: 14.5px; }
   .kitchenbox p { font-size: 12.5px; color: #2a2a22; margin-top: 3px; }
-  .bagnote { margin-top: 10px; background: var(--peach); border-radius: 14px; padding: 10px 12px; font-size: 12.5px; color: var(--brown); display: flex; gap: 8px; align-items: center; }
+  .bagnote { margin-top: 12px; background: var(--peach); border-radius: 14px; padding: 12px 16px; font-size: 12.5px; color: var(--brown); display: flex; gap: 8px; align-items: center; }
   .bagnote svg { width: 16px; height: 16px; flex: none; }
-  .totals { padding: 14px; margin-top: 10px; font-size: 13.5px; }
+  .totals { padding: 14px 16px; margin-top: 12px; font-size: 13.5px; }
   .totals div { display: flex; justify-content: space-between; padding: 3px 0; color: var(--muted); }
   .totals .t { color: var(--ink); font-weight: 700; font-size: 15px; margin-top: 4px; }
 
@@ -467,7 +473,7 @@
   <section class="screen" id="checkout" aria-label="Checkout">
     <div class="pad">
       <div class="row"><button class="icon-btn" data-back aria-label="Back" data-i="back"></button><div><h1 class="headline" style="font-size:24px">Checkout</h1></div></div>
-      <div class="card ckrow"><span class="pin" data-i="pin"></span><div style="flex:1"><b style="font-size:14px">12 Elm Row, E8</b><p class="muted" style="font-size:12px">Arriving in 25–35 min</p></div><span data-i="chev" style="width:16px"></span></div>
+      <div class="card ckrow" style="align-items:center"><span class="pin" data-i="pin"></span><div class="body"><h3>12 Elm Row, E8</h3><p class="muted">Arriving in 25–35 min</p></div><span class="end" data-i="chev"></span></div>
       <div id="ck-items"></div>
       <div class="kitchenbox" id="ck-kitchen"></div>
       <div class="bagnote"><span data-i="bag"></span>Allergies are also printed on the bag label.</div>
@@ -1112,7 +1118,7 @@ document.addEventListener("click", e => { const a = e.target.closest("[data-add]
 function renderCheckout() {
   const ids = active();
   $("#ck-items").innerHTML = basket.map(b => { const d = DISHES.find(x => x.id === b.id);
-    return `<div class="card ckrow">${artHTML(d, "width:52px;height:52px")}<div style="flex:1 1 auto;min-width:0"><b style="font-size:13.5px">${b.qty} × ${d.name}</b><div style="margin-top:5px">${tagHTML(labelFor(d, ids))}</div></div><b class="ckprice" style="flex:0 0 auto;font-size:13.5px;line-height:1.35;white-space:nowrap;margin-right:10px">${money(d.price * b.qty)}</b></div>`; }).join("");
+    return `<div class="card ckrow">${artHTML(d, "width:52px;height:52px")}<div class="body"><h3>${b.qty} × ${d.name}</h3><div class="tagrow">${tagHTML(labelFor(d, ids))}</div></div><span class="end">${money(d.price * b.qty)}</span></div>`; }).join("");
   const names = [...new Set(basket.map(b => RESTAURANTS[DISHES.find(d => d.id === b.id).rest].name))];
   $("#ck-kitchen").innerHTML = `<div class="row" style="align-items:flex-start"><div class="art" style="width:34px;height:34px;border-radius:0"><img src="${IMG.mascot}" alt=""></div><div style="flex:1"><h3>${st.forOther ? "Their allergies go to the kitchen" : "Your allergies go to the kitchen"}</h3><p>${andWords(names)} will see these on your order.</p></div></div>
     <div class="frow" style="margin-top:10px">${ids.length ? ids.map(a => `<span class="achip">${I.shield}${A(a).Label}</span>`).join("") : `<span class="muted" style="font-size:13px">No allergies added</span>`}<button class="link end" id="ck-edit">Edit</button></div>
